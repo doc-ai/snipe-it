@@ -15,7 +15,7 @@ class DepartmentsController extends Controller
     /**
      * Display a listing of the resource.
      *
-     * @author [A. Gianotto] [<snipe@snipe.net>]
+     * @author [Godfrey Martinez] [<snipe@snipe.net>]
      * @since [v4.0]
      * @return \Illuminate\Http\Response
      */
@@ -33,14 +33,19 @@ class DepartmentsController extends Controller
             'departments.created_at',
             'departments.updated_at',
             'departments.image'
-        ])->with('users')->with('location')->with('manager')->with('company')->withCount('users');
+        ])->with('users')->with('location')->with('manager')->with('company')->withCount('users as users_count');
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $departments = $departments->TextSearch($request->input('search'));
         }
 
-        $offset = (($departments) && (request('offset') > $departments->count())) ? 0 : request('offset', 0);
-        $limit = $request->input('limit', 50);
+        // Set the offset to the API call's offset, unless the offset is higher than the actual count of items in which
+        // case we override with the actual count, so we should return 0 items.
+        $offset = (($departments) && ($request->get('offset') > $departments->count())) ? $departments->count() : $request->get('offset', 0);
+
+        // Check to make sure the limit is not higher than the max allowed
+        ((config('app.max_results') >= $request->input('limit')) && ($request->filled('limit'))) ? $limit = $request->input('limit') : $limit = config('app.max_results');
+
         $order = $request->input('order') === 'asc' ? 'asc' : 'desc';
         $sort = in_array($request->input('sort'), $allowed_columns) ? $request->input('sort') : 'created_at';
 
@@ -76,7 +81,7 @@ class DepartmentsController extends Controller
         $department = new Department;
         $department->fill($request->all());
         $department->user_id = Auth::user()->id;
-        $department->manager_id = ($request->has('manager_id' ) ? $request->input('manager_id') : null);
+        $department->manager_id = ($request->filled('manager_id' ) ? $request->input('manager_id') : null);
 
         if ($department->save()) {
             return response()->json(Helper::formatStandardApiResponse('success', $department, trans('admin/departments/message.create.success')));
@@ -142,7 +147,7 @@ class DepartmentsController extends Controller
             'image',
         ]);
 
-        if ($request->has('search')) {
+        if ($request->filled('search')) {
             $departments = $departments->where('name', 'LIKE', '%'.$request->get('search').'%');
         }
 
@@ -157,6 +162,29 @@ class DepartmentsController extends Controller
 
         return (new SelectlistTransformer)->transformSelectlist($departments);
 
+    }
+    /**
+     * Update the specified resource in storage.
+     *
+     * @author [Godfrey Martinez] [<gmartinez@grokability.com>]
+     * @since [v4.0]
+     * @param  \Illuminate\Http\Request  $request
+     * @param  int  $id
+     * @return \Illuminate\Http\Response
+     */
+    public function update(Request $request, $id)
+    {
+        $this->authorize('update', Department::class);
+        $departments = Department::findOrFail($id);
+        $departments->fill($request->all());
+
+        if ($departments->save()) {
+            return response()
+                ->json(Helper::formatStandardApiResponse('success', (new DepartmentsTransformer())->transformdepartment($departments), trans('admin/departments/message.update.success')));
+        }
+
+        return response()
+            ->json(Helper::formatStandardApiResponse('error', null, $departments->getErrors()));
     }
 
 }

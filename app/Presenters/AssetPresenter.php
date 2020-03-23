@@ -258,13 +258,17 @@ class AssetPresenter extends Presenter
             $query->whereHas('models');
         })->get();
 
+
+        // Note: We do not need to e() escape the field names here, as they are already escaped when
+        // they are presented in the blade view. If we escape them here, custom fields with quotes in their
+        // name can break the listings page. - snipe
         foreach ($fields as $field) {
             $layout[] = [
                 "field" => 'custom_fields.'.$field->convertUnicodeDbSlug(),
                 "searchable" => true,
                 "sortable" => true,
                 "switchable" => true,
-                "title" => ($field->field_encrypted=='1') ?'<i class="fa fa-lock"></i> '.e($field->name) : e($field->name),
+                "title" => ($field->field_encrypted=='1') ?'<i class="fa fa-lock"></i> '.$field->name : $field->name,
                 "formatter" => "customFieldsFormatter"
             ];
 
@@ -391,7 +395,7 @@ class AssetPresenter extends Presenter
     public function eol_date()
     {
 
-        if (( $this->purchase_date ) && ( $this->model ) && ($this->model->model->eol) ) {
+        if (( $this->purchase_date ) && ( $this->model->model ) && ($this->model->model->eol) ) {
             $date = date_create($this->purchase_date);
             date_add($date, date_interval_create_from_date_string($this->model->model->eol . ' months'));
             return date_format($date, 'Y-m-d');
@@ -492,9 +496,13 @@ class AssetPresenter extends Presenter
      */
     public function warrantee_expires()
     {
-        $date = date_create($this->purchase_date);
-        date_add($date, date_interval_create_from_date_string($this->warranty_months . ' months'));
-        return date_format($date, 'Y-m-d');
+        if (($this->purchase_date) && ($this->warranty_months)) {
+            $date = date_create($this->purchase_date);
+            date_add($date, date_interval_create_from_date_string($this->warranty_months . ' months'));
+            return date_format($date, 'Y-m-d');
+        }
+
+        return false;
     }
 
     /**

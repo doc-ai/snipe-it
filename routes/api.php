@@ -14,7 +14,7 @@ use Illuminate\Http\Request;
 */
 
 
-Route::group(['prefix' => 'v1','namespace' => 'Api'], function () {
+Route::group(['prefix' => 'v1','namespace' => 'Api', 'middleware' => 'api'], function () {
 
     Route::group(['prefix' => 'account'], function () {
         Route::get('requestable/hardware',
@@ -56,6 +56,21 @@ Route::group(['prefix' => 'v1','namespace' => 'Api'], function () {
                 'uses' => 'AccessoriesController@checkedout'
             ]
         );
+
+        Route::post('{accessory}/checkout',
+            [
+                'as' => 'api.accessories.checkout',
+                'uses' => 'AccessoriesController@checkout'
+            ]
+        );
+
+        Route::post('{accessory}/checkin',
+            [
+                'as' => 'api.accessories.checkin',
+                'uses' => 'AccessoriesController@checkin'
+            ]
+        );
+
     }); // Accessories group
 
 
@@ -305,20 +320,30 @@ Route::group(['prefix' => 'v1','namespace' => 'Api'], function () {
 
     Route::group(['prefix' => 'hardware'], function () {
 
-        Route::get( 'bytag/{tag}',  [
-            'as' => 'assets.show.bytag',
-            'uses' => 'AssetsController@showByTag'
-        ]);
+        Route::get('bytag/{any}',
+            [
+                'as' => 'api.assets.show.bytag',
+                'uses' => 'AssetsController@showByTag'
+            ]
+        )->where('any', '.*');
 
-        Route::get( 'byserial/{serial}',  [
-            'as' => 'assets.show.byserial',
-            'uses' => 'AssetsController@showBySerial'
-        ]);
 
+        Route::get('byserial/{any}',
+            [
+                'as' => 'api.assets.show.byserial',
+                'uses' => 'AssetsController@showBySerial'
+            ]
+         )->where('any', '.*');
+        
 
         Route::get( 'selectlist',  [
             'as' => 'assets.selectlist',
             'uses' => 'AssetsController@selectlist'
+        ]);
+
+        Route::get('audit/{audit}', [
+            'as' => 'api.asset.to-audit',
+            'uses' => 'AssetsController@index'
         ]);
 
 
@@ -326,7 +351,6 @@ Route::group(['prefix' => 'v1','namespace' => 'Api'], function () {
             'as' => 'api.asset.audit',
             'uses' => 'AssetsController@audit'
         ]);
-
 
         Route::post('{asset_id}/checkout',
             [
@@ -719,6 +743,13 @@ Route::group(['prefix' => 'v1','namespace' => 'Api'], function () {
             [
                 'as' => 'api.users.accessorieslist',
                 'uses' => 'UsersController@accessories'
+            ]
+        );
+
+        Route::get('{user}/licenses',
+            [
+                'as' => 'api.users.licenselist',
+                'uses' => 'UsersController@licenses'
             ]
         );
 

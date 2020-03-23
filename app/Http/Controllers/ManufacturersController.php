@@ -75,18 +75,7 @@ class ManufacturersController extends Controller
         $manufacturer->support_url     = $request->input('support_url');
         $manufacturer->support_phone    = $request->input('support_phone');
         $manufacturer->support_email    = $request->input('support_email');
-
-
-        if ($request->file('image')) {
-            $image = $request->file('image');
-            $file_name = str_slug($image->getClientOriginalName()).".".$image->getClientOriginalExtension();
-            $path = public_path('uploads/manufacturers/'.$file_name);
-            Image::make($image->getRealPath())->resize(200, null, function ($constraint) {
-                $constraint->aspectRatio();
-                $constraint->upsize();
-            })->save($path);
-            $manufacturer->image = $file_name;
-        }
+        $manufacturer = $request->handleImages($manufacturer,600, public_path().'/uploads/manufacturers');
 
 
 
@@ -107,11 +96,14 @@ class ManufacturersController extends Controller
      */
     public function edit($id = null)
     {
-        $this->authorize('edit', Manufacturer::class);
+        // Handles manufacturer checks and permissions.
+        $this->authorize('update', Manufacturer::class);
+
         // Check if the manufacturer exists
-        if (is_null($item = Manufacturer::find($id))) {
+        if (!$item = Manufacturer::find($id)) {
             return redirect()->route('manufacturers.index')->with('error', trans('admin/manufacturers/message.does_not_exist'));
         }
+        
         // Show the page
         return view('manufacturers/edit', compact('item'));
     }
@@ -129,7 +121,7 @@ class ManufacturersController extends Controller
      */
     public function update(ImageUploadRequest $request, $manufacturerId = null)
     {
-        $this->authorize('edit', Manufacturer::class);
+        $this->authorize('update', Manufacturer::class);
         // Check if the manufacturer exists
         if (is_null($manufacturer = Manufacturer::find($manufacturerId))) {
             // Redirect to the manufacturer  page
@@ -142,37 +134,14 @@ class ManufacturersController extends Controller
         $manufacturer->support_url     = $request->input('support_url');
         $manufacturer->support_phone    = $request->input('support_phone');
         $manufacturer->support_email    = $request->input('support_email');
-
-        $old_image = $manufacturer->image;
-
+        
         // Set the model's image property to null if the image is being deleted
         if ($request->input('image_delete') == 1) {
             $manufacturer->image = null;
         }
 
-        if ($request->file('image')) {
-            $image = $request->file('image');
-            $file_name = $manufacturer->id.'-'.str_slug($image->getClientOriginalName()) . "." . $image->getClientOriginalExtension();
+        $manufacturer = $request->handleImages($manufacturer,600, public_path().'/uploads/manufacturers');
 
-            if ($image->getClientOriginalExtension()!='svg') {
-                Image::make($image->getRealPath())->resize(500, null, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                })->save(app('manufacturers_upload_path').$file_name);
-            } else {
-                $image->move(app('manufacturers_upload_path'), $file_name);
-            }
-            $manufacturer->image = $file_name;
-
-        }
-
-        if ((($request->file('image')) && (isset($old_image)) && ($old_image!='')) || ($request->input('image_delete') == 1)) {
-            try  {
-                unlink(app('manufacturers_upload_path').$old_image);
-            } catch (\Exception $e) {
-                \Log::info($e);
-            }
-        }
 
 
         if ($manufacturer->save()) {

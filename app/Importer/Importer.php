@@ -120,7 +120,8 @@ abstract class Importer
     public function import()
     {
         $headerRow = $this->csv->fetchOne();
-        $results = $this->normalizeInputArray($this->csv->fetchAssoc());
+        $this->csv->setHeaderOffset(0); //explicitly sets the CSV document header record
+        $results = $this->normalizeInputArray($this->csv->getRecords($headerRow));
 
         $this->populateCustomFields($headerRow);
 
@@ -442,11 +443,7 @@ abstract class Importer
 
     public function fetchHumanBoolean($value)
     {
-        if (($value =='1') || (strtolower($value) =='true') || (strtolower($value) =='yes'))
-        {
-            return '1';
-        }
-        return '0';
+       return (int) filter_var($value, FILTER_VALIDATE_BOOLEAN);
     }
 
     /**

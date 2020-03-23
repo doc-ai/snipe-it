@@ -90,23 +90,7 @@ class AssetModelsController extends Controller
             $model->fieldset_id = e($request->input('custom_fieldset'));
         }
 
-        if (Input::file('image')) {
-
-            $image = Input::file('image');
-            $file_name = str_slug($image->getClientOriginalName()) . "." . $image->getClientOriginalExtension();
-            $path = app('models_upload_path');
-
-            if ($image->getClientOriginalExtension()!='svg') {
-                Image::make($image->getRealPath())->resize(500, null, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                })->save($path.'/'.$file_name);
-            } else {
-                $image->move($path, $file_name);
-            }
-            $model->image = $file_name;
-
-        }
+        $model = $request->handleImages($model,600, public_path().'/uploads/models');
 
             // Was it created?
         if ($model->save()) {
@@ -182,37 +166,7 @@ class AssetModelsController extends Controller
             }
         }
 
-        $old_image = $model->image;
-
-        // Set the model's image property to null if the image is being deleted
-        if ($request->input('image_delete') == 1) {
-            $model->image = null;
-        }
-
-        if ($request->file('image')) {
-            $image = $request->file('image');
-            $file_name = $model->id.'-'.str_slug($image->getClientOriginalName()) . "." . $image->getClientOriginalExtension();
-
-            if ($image->getClientOriginalExtension()!='svg') {
-                Image::make($image->getRealPath())->resize(500, null, function ($constraint) {
-                    $constraint->aspectRatio();
-                    $constraint->upsize();
-                })->save(app('models_upload_path').$file_name);
-            } else {
-                $image->move(app('models_upload_path'), $file_name);
-            }
-            $model->image = $file_name;
-
-        }
-
-        if ((($request->file('image')) && (isset($old_image)) && ($old_image!='')) || ($request->input('image_delete') == 1)) {
-            try  {
-                unlink(app('models_upload_path').$old_image);
-            } catch (\Exception $e) {
-                \Log::info($e);
-            }
-        }
-
+        $model = $request->handleImages($model,600, public_path().'/uploads/models');
 
         if ($model->save()) {
             return redirect()->route("models.index")->with('success', trans('admin/models/message.update.success'));
@@ -373,7 +327,7 @@ class AssetModelsController extends Controller
         if ((is_array($models_raw_array)) && (count($models_raw_array) > 0)) {
 
 
-            $models = AssetModel::whereIn('id', $models_raw_array)->withCount('assets')->orderBy('assets_count', 'ASC')->get();
+            $models = AssetModel::whereIn('id', $models_raw_array)->withCount('assets as assets_count')->orderBy('assets_count', 'ASC')->get();
 
             // If deleting....
             if ($request->input('bulk_actions')=='delete') {
@@ -420,10 +374,10 @@ class AssetModelsController extends Controller
         $update_array = array();
 
 
-        if (($request->has('manufacturer_id') && ($request->input('manufacturer_id')!='NC'))) {
+        if (($request->filled('manufacturer_id') && ($request->input('manufacturer_id')!='NC'))) {
             $update_array['manufacturer_id'] = $request->input('manufacturer_id');
         }
-        if (($request->has('category_id') && ($request->input('category_id')!='NC'))) {
+        if (($request->filled('category_id') && ($request->input('category_id')!='NC'))) {
             $update_array['category_id'] = $request->input('category_id');
         }
         if ($request->input('fieldset_id')!='NC') {
@@ -461,7 +415,7 @@ class AssetModelsController extends Controller
 
         if ((is_array($models_raw_array)) && (count($models_raw_array) > 0)) {
 
-            $models = AssetModel::whereIn('id', $models_raw_array)->withCount('assets')->get();
+            $models = AssetModel::whereIn('id', $models_raw_array)->withCount('assets as assets_count')->get();
 
             $del_error_count = 0;
             $del_count = 0;

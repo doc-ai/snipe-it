@@ -167,6 +167,11 @@
         };
     }
 
+    function hardwareAuditFormatter(value, row) {
+        return '<a href="{{ url('/') }}/hardware/audit/' + row.id + '/" class="btn btn-sm bg-yellow" data-tooltip="true" title="Audit this item">{{ trans('general.audit') }}</a>';
+    }
+
+
     // Make the edit/delete buttons
     function genericActionsFormatter(destination) {
         return function (value,row) {
@@ -439,6 +444,13 @@
             return '<a href="{{ url('/') }}/hardware/' + row.asset.id + '"> ' + row.asset.asset_tag + '</a>';
         }
         return '';
+
+    }
+
+    function departmentNameLinkFormatter(value, row) {
+        if ((row.assigned_user) && (row.assigned_user.department) && (row.assigned_user.department.name)) {
+            return '<a href="{{ url('/') }}/department/' + row.assigned_user.department.id + '"> ' + row.assigned_user.department.name + '</a>';
+        }
 
     }
 

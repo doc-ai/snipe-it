@@ -44,11 +44,11 @@
 
                 <table
                         data-columns="{{ \App\Presenters\LicensePresenter::dataTableLayoutSeats() }}"
-                        data-cookie-id-table="seatsTable"
-                        data-id-table="seatsTable"
-                        id="seatsTable"
+                        data-cookie-id-table="seatsTable-{{ $license->id }}"
+                        data-id-table="seatsTable-{{ $license->id }}"
+                        id="seatsTable-{{$license->id}}"
                         data-pagination="true"
-                        data-search="true"
+                        data-search="false"
                         data-side-pagination="server"
                         data-show-columns="true"
                         data-show-export="true"
